@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediFacts.AI – Medicininių dokumentų analizė</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f8fafb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #ffffff;
+      color: #224a55;
+      width: 100%;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-container img {
+      height: 48px;
+    }
+    .site-title h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #224a55;
+    }
+    .site-title p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #468387;
+    }
+    main {
+      background: white;
+      padding: 2rem;
+      margin: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="file"],
+    input[type="email"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #2caea6;
+      color: #ffffff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.2s ease;
+    }
+    button:hover:not(:disabled) {
+      background: #238e86;
+    }
+    button:disabled {
+      background: #bcd9d7;
+      cursor: not-allowed;
+    }
+    .response {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #eef7ff;
+      border-radius: 4px;
+      display: none;
+    }
+    .follow-up {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+    }
+
+    /* Card layout for upload interface */
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      max-width: 1000px;
+      width: 100%;
+    }
+    .card-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+    .upload-area {
+      flex: 1 1 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    .doctor-area {
+      flex: 1 1 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .doctor-area img {
+      max-width: 100%;
+      height: auto;
+    }
+    .drop-zone {
+      border: 2px dashed #bcd9d7;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      margin-bottom: 1.5rem;
+    }
+    .drop-zone:hover {
+      background-color: #f0f8f7;
+    }
+    .drop-zone .icon {
+      font-size: 2.5rem;
+      color: #468387;
+      margin-bottom: 0.5rem;
+    }
+    #drop-text {
+      color: #468387;
+      font-size: 1rem;
+      margin: 0;
+    }
+    #upload-button {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    /* Modal overlay styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 600px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <!-- Use a relative path for the logo so it also loads when opened via the file protocol -->
+      <img src="assets/logo.png" alt="MediFacts.AI logotipas" />
+      <div class="site-title">
+        <h1>MediFacts.AI</h1>
+        <p>Paprasta medicininių dokumentų analizė naudojant GPT‑4o</p>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <div class="card-content">
+        <div class="upload-area">
+          <form id="upload-form">
+            <input type="file" id="file" name="file" required hidden />
+            <div id="drop-zone" class="drop-zone">
+              <div class="icon">📄</div>
+              <p id="drop-text">Įkelkite PDF ar nuotrauką</p>
+            </div>
+            <div class="form-group">
+              <input type="email" id="email" name="email" placeholder="El. paštas (neprivaloma)" />
+            </div>
+            <button type="submit" id="upload-button">Interpretuoti mano dokumentą</button>
+            <button type="button" id="camera-button">Fotografuoti dokumentą</button>
+          </form>
+          <div class="response" id="response-box"></div>
+        </div>
+        <div class="doctor-area">
+          <!-- Use a relative path for the doctor illustration so it loads when opened via the file protocol -->
+          <img src="assets/doctor.png" alt="Gydytojo iliustracija" />
+        </div>
+      </div>
+    </div>
+    <div class="follow-up">
+      <h3>Papildomi klausimai</h3>
+      <p>Įveskite savo sesijos ID ir paklauskite klausimo. Galima užduoti iki trijų klausimų.</p>
+      <div class="form-group">
+        <label for="session-id">Sesijos ID:</label>
+        <input type="text" id="session-id" placeholder="Sesijos ID" />
+      </div>
+      <div class="form-group">
+        <label for="question">Jūsų klausimas:</label>
+        <input type="text" id="question" placeholder="Klausimas" />
+      </div>
+      <button id="ask-btn">Siųsti klausimą</button>
+      <div class="response" id="answer-box"></div>
+    </div>
+    <!-- Modal for camera capture -->
+    <div id="camera-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <video id="camera-video" autoplay playsinline style="width: 100%; border-radius: 8px;"></video>
+        <div style="display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; width: 100%;">
+          <button type="button" id="capture-button" style="flex: 1;">Fiksuoti nuotrauką</button>
+          <button type="button" id="close-camera" style="flex: 1; background: #bcd9d7; color: #224a55;">Atšaukti</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const uploadForm = document.getElementById('upload-form');
+    const responseBox = document.getElementById('response-box');
+    // Clicking on the drop zone opens the file picker
+    const dropZone = document.getElementById('drop-zone');
+    const fileInputEl = document.getElementById('file');
+    dropZone.addEventListener('click', () => {
+      fileInputEl.click();
+    });
+    // Update drop zone text when a file is selected
+    fileInputEl.addEventListener('change', () => {
+      const dt = document.getElementById('drop-text');
+      if (fileInputEl.files && fileInputEl.files.length > 0) {
+        dt.textContent = fileInputEl.files[0].name;
+      } else {
+        dt.textContent = 'Įkelkite PDF ar nuotrauką';
+      }
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('file');
+      const emailInput = document.getElementById('email');
+      if (!fileInput.files.length) {
+        alert('Pasirinkite failą.');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      if (emailInput.value) {
+        formData.append('email', emailInput.value);
+      }
+      // Optionally set currency and amount here
+      try {
+        const res = await fetch('/upload/', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert('Klaida: ' + (err.error || res.statusText));
+          return;
+        }
+        const data = await res.json();
+        // If payment is enabled, we get checkout_url and redirect
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else if (data.answer) {
+          // Payment is skipped – show the answer directly
+          responseBox.style.display = 'block';
+          responseBox.innerHTML = `<strong>Atsakymas:</strong><br>${data.answer}`;
+          // Set session ID for follow‑up questions
+          const sessionInput = document.getElementById('session-id');
+          sessionInput.value = data.session_id;
+          // Optionally show a link to download the PDF
+          if (data.pdf_download) {
+            const link = document.createElement('a');
+            link.href = data.pdf_download;
+            link.textContent = 'Atsisiųsti PDF';
+            link.style.display = 'block';
+            link.style.marginTop = '0.5rem';
+            responseBox.appendChild(link);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Iškilo nenumatyta klaida.');
+      }
+    });
+
+    // Follow‑up question logic
+    const askBtn = document.getElementById('ask-btn');
+    const answerBox = document.getElementById('answer-box');
+    askBtn.addEventListener('click', async () => {
+      const sessionId = document.getElementById('session-id').value.trim();
+      const question = document.getElementById('question').value.trim();
+      if (!sessionId || !question) {
+        alert('Įveskite sesijos ID ir klausimą.');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('question', question);
+      try {
+        const res = await fetch(`/ask/${sessionId}`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert('Klaida: ' + (err.detail || res.statusText));
+          return;
+        }
+        const data = await res.json();
+        answerBox.style.display = 'block';
+        answerBox.textContent = `Atsakymas: ${data.answer}\nLikę klausimai: ${data.remaining_questions}`;
+      } catch (err) {
+        console.error(err);
+        alert('Iškilo nenumatyta klaida.');
+      }
+    });
+
+    // Camera capture logic
+    const cameraBtn = document.getElementById('camera-button');
+    const cameraModal = document.getElementById('camera-modal');
+    const videoEl = document.getElementById('camera-video');
+    const captureBtn = document.getElementById('capture-button');
+    const closeCameraBtn = document.getElementById('close-camera');
+    let mediaStream;
+
+    // Show the modal and start video stream
+    cameraBtn.addEventListener('click', async () => {
+      // Reset drop zone text if previously captured
+      document.getElementById('drop-text').textContent = 'Įkelkite PDF ar nuotrauką';
+      cameraModal.style.display = 'flex';
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoEl.srcObject = mediaStream;
+      } catch (err) {
+        alert('Kameros pasiekti nepavyko: ' + err.message);
+        cameraModal.style.display = 'none';
+      }
+    });
+
+    // Helper to stop camera stream
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      videoEl.srcObject = null;
+    }
+
+    // Capture a frame from the video and convert to a file
+    captureBtn.addEventListener('click', () => {
+      if (!videoEl || !mediaStream) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        const file = new File([blob], 'captured-image.png', { type: 'image/png' });
+        // Use DataTransfer to set the file input value
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInputEl.files = dataTransfer.files;
+        // Update drop zone text
+        document.getElementById('drop-text').textContent = file.name;
+      }, 'image/png');
+      stopCamera();
+      cameraModal.style.display = 'none';
+    });
+
+    // Close the modal without capturing
+    closeCameraBtn.addEventListener('click', () => {
+      stopCamera();
+      cameraModal.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

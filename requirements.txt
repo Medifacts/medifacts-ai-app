@@ -1,0 +1,10 @@
+# Required Python packages for the MediFacts.AI backend
+fastapi
+uvicorn
+openai
+stripe
+reportlab
+pypdf2
+pytesseract
+Pillow
+aiofiles
